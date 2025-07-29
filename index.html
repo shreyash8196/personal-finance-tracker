@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Finance Tracker</title>
+    <meta name="description" content="Track your income, expenses, loans, and savings with interactive charts and smart alerts">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .hero {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            padding: 40px 20px;
+        }
+        
+        .hero h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .hero p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header-bar {
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .main-content {
+            padding: 30px;
+        }
+        
+        .section {
+            margin-bottom: 40px;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            transition: transform 0.3s ease;
+        }
+        
+        .section:hover {
+            transform: translateY(-2px);
+        }
+        
+        .section-header {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            padding: 20px;
+            font-weight: 600;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .section-content {
+            padding: 25px;
+            background: #fafafa;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .input-cell {
+            background-color: #fff3cd !important;
+            border: 2px solid #ffc107 !important;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .input-cell:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0,123,255,0.25);
+        }
+        
+        .total-cell {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            color: white;
+            font-weight: bold;
+            font-size: 16px;
+            text-align: center;
+        }
+        
+        .overspend {
+            background: linear-gradient(135deg, #e74c3c, #c0392b) !important;
+            color: white !important;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+        
+        .summary-box {
+            background: linear-gradient(135deg, #74b9ff, #0984e3);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin: 20px 0;
+            box-shadow: 0 10px 30px rgba(116, 185, 255, 0.3);
+        }
+        
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 10px 0;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .summary-item:last-child {
+            border-bottom: none;
+            font-weight: bold;
+            font-size: 20px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 2px solid rgba(255,255,255,0.3);
+        }
+        
+        input[type="number"], input[type="text"] {
+            width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .chart-container {
+            width: 100%;
+            max-width: 400px;
+            height: 400px;
+            margin: 20px auto;
+            position: relative;
+        }
+        
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+            margin-top: 30px;
+        }
+        
+        .chart-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .chart-card h4 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 18px;
+            text-align: center;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin: 40px 0;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: white;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d, #495057);
+            box-shadow: 0 5px 15px rgba(108, 117, 125, 0.3);
+        }
+        
+        .btn-info {
+            background: linear-gradient(135deg, #17a2b8, #138496);
+            box-shadow: 0 5px 15px rgba(23, 162, 184, 0.3);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        
+        .status-ok {
+            color: #28a745;
+            font-weight: bold;
+        }
+        
+        .status-warning {
+            color: #ffc107;
+            font-weight: bold;
+        }
+        
+        .status-danger {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        
+        .footer {
+            background: #2c3e50;
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .footer p {
+            opacity: 0.8;
+            margin-bottom: 10px;
+        }
+        
+        .footer a {
+            color: #74b9ff;
+            text-decoration: none;
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2rem;
+            }
+            
+            .main-content {
+                padding: 20px;
+            }
+            
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            table, th, td {
+                font-size: 14px;
+                padding: 10px;
+            }
+        }
+        
+        /* Loading Animation */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="hero">
+        <h1>💰 Personal Finance Tracker</h1>
+        <p>Take control of your finances with smart tracking, automated calculations, and insightful visualizations</p>
+    </div>
+
+    <div class="container">
+        <div class="header-bar">
+            <h2>Your Financial Dashboard</h2>
+        </div>
+        
+        <div class="main-content">
+            <!-- Income Section -->
+            <div class="section">
+                <div class="section-header">
+                    <span>💰</span> Income Sources
+                </div>
+                <div class="section-content">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Income Source</th>
+                                <th>Monthly Amount (₹)</th>
+                                <th>Annual Projection</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>💼 Salary</td>
+                                <td><input type="number" class="input-cell" id="salary" placeholder="Enter salary" oninput="calculateTotals()"></td>
+                                <td id="salaryAnnual">₹0</td>
+                            </tr>
+                            <tr>
+                                <td>💻 Freelance</td>
+                                <td><input type="number" class="input-cell" id="freelance" placeholder="Enter freelance income" oninput="calculateTotals()"></td>
+                                <td id="freelanceAnnual">₹0</td>
+                            </tr>
+                            <tr>
+                                <td>📈 Dividends</td>
+                                <td><input type="number" class="input-cell" id="dividends" placeholder="Enter dividend income" oninput="calculateTotals()"></td>
+                                <td id="dividendsAnnual">₹0</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Total Income</strong></td>
+                                <td class="total-cell" id="totalIncome">₹0</td>
+                                <td class="total-cell" id="totalIncomeAnnual">₹0</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Loans Section -->
+            <div class="section">
+                <div class="section-header">
+                    <span>🏦</span> Loan Management
+                </div>
+                <div class="section-content">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Loan Type</th>
+                                <th>Monthly EMI (₹)</th>
+                                <th>Interest Rate (%)</th>
+                                <th>Outstanding Balance (₹)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><input type="text" class="input-cell" id="loan1Type" placeholder="e.g., Home Loan"></td>
+                                <td><input type="number" class="input-cell" id="loan1EMI" placeholder="0" oninput="calculateTotals()"></td>
+                                <td><input type="number" class="input-cell" id="loan1Rate" placeholder="0" step="0.01"></td>
+                                <td><input type="number" class="input-cell" id="loan1Balance" placeholder="0"></td>
+                            </tr>
+                            <tr>
+                                <td><input type="text" class="input-cell" id="loan2Type" placeholder="e.g., Car Loan"></td>
+                                <td><input type="number" class="input-cell" id="loan2EMI" placeholder="0" oninput="calculateTotals()"></td>
+                                <td><input type="number" class="input-cell" id="loan2Rate" placeholder="0" step="0.01"></td>
+                                <td><input type="number" class="input-cell" id="loan2Balance" placeholder="0"></td>
+                            </tr>
+                            <tr>
+                                <td><input type="text" class="input-cell" id="loan3Type" placeholder="e.g., Personal Loan"></td>
+                                <td><input type="number" class="input-cell" id="loan3EMI" placeholder="0" oninput="calculateTotals()"></td>
+                                <td><input type="number" class="input-cell" id="loan3Rate" placeholder="0" step="0.01"></td>
+                                <td><input type="number" class="input-cell" id="loan3Balance" placeholder="0"></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Total EMI</strong></td>
+                                <td class="total-cell" id="totalEMI">₹0</td>
+                                <td>-</td>
+                                <td class="total-cell" id="totalBalance">₹0</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Expenses Section -->
+            <div class="section">
+                <div class="section-header">
+                    <span>💳</span> Monthly Expenses
+                </div>
+                <div class="section-content">
+                    <h4 style="color: #2c3e50; margin-bottom: 15px;">🏠 Fixed Expenses</h4>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>Monthly Amount (₹)</th>
+                                <th>Status</th>
+                                <th>% of Income</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>🏠 Rent</td>
+                                <td><input type="number" class="input-cell" id="rent" placeholder="0" oninput="calculateTotals()"></td>
+                                <td id="rentStatus">-</td>
+                                <td id="rentPercent">0%</td>
+                            </tr>
+                            <tr>
+                                <td>🛡️ Insurance</td>
+                                <td><input type="number" class="input-cell" id="insurance" placeholder="0" oninput="calculateTotals()"></td>
+                                <td id="insuranceStatus">-</td>
+                                <td id="insurancePercent">0%</td>
+                            </tr>
+                            <tr>
+                                <td>⚡ Utilities</td>
+                                <td><input type="number" class="input-cell" id="utilities" placeholder="0" oninput="calculateTotals()"></td>
+                                <td id="utilitiesStatus">-</td>
+                                <td id="utilitiesPercent">0%</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Total Fixed</strong></td>
+                                <td class="total-cell" id="totalFixed">₹0</td>
+                                <td>-</td>
+                                <td class="total-cell" id="totalFixedPercent">0%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h4 style="color: #2c3e50; margin: 25px 0 15px 0;">📊 Variable Expenses</h4>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>Monthly Amount (₹)</th>
+                                <th>Status</th>
+                                <th>% of Income</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>🍽️ Food & Dining</td>
+                                <td><input type="number" class="input-cell" id="food" placeholder="0" oninput="calculateTotals()"></td>
+                                <td id="foodStatus">-</td>
+                                <td id="foodPercent">0%</td>
+                            </tr>
+                            <tr>
+                                <td>🧠 Therapy</td>
+                                <td><input type="number" class="input-cell" id="therapy" placeholder="0" oninput="calculateTotals()"></td>
+                                <td id="therapyStatus">-</td>
+                                <td id="therapyPercent">0%</td>
+                            </tr>
+                            <tr>
+                                <td>🎬 Entertainment</td>
+                                <td><input type="number" class="input-cell" id="entertainment" placeholder="0" oninput="calculateTotals()"></td>
+                                <td id="entertainmentStatus">-</td>
+                                <td id="entertainmentPercent">0%</td>
+                            </tr>
+                            <tr>
+                                <td>🛍️ Shopping</td>
+                                <td><input type="number" class="input-cell" id="shopping" placeholder="0" oninput="calculateTotals()"></td>
+                                <td id="shoppingStatus">-</td>
+                                <td id="shoppingPercent">0%</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Total Variable</strong></td>
+                                <td class="total-cell" id="totalVariable">₹0</td>
+                                <td>-</td>
+                                <td class="total-cell" id="totalVariablePercent">0%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Savings Section -->
+            <div class="section">
+                <div class="section-header">
+                    <span>💎</span> Savings & Investments
+                </div>
+                <div class="section-content">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Investment Type</th>
+                                <th>Monthly Amount (₹)</th>
+                                <th>Annual Target</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>🚨 Emergency Fund</td>
+                                <td><input type="number" class="input-cell" id="emergencyFund" placeholder="0" oninput="calculateTotals()"></td>
+                                <td id="emergencyAnnual">₹0</td>
+                            </tr>
+                            <tr>
+                                <td>📈 SIP (Mutual Funds)</td>
+                                <td><input type="number" class="input-cell" id="sip" placeholder="0" oninput="calculateTotals()"></td>
+                                <td id="sipAnnual">₹0</td>
+                            </tr>
+                            <tr>
+                                <td>🏛️ Fixed Deposits</td>
+                                <td><input type="number" class="input-cell" id="fd" placeholder="0" oninput="calculateTotals()"></td>
+                                <td id="fdAnnual">₹0</td>
+                            </tr>
+                            <tr>
+                                <td>💼 Other Investments</td>
+                                <td><input type="number" class="input-cell" id="otherInvestments" placeholder="0" oninput="calculateTotals()"></td>
+                                <td id="otherAnnual">₹0</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Total Savings</strong></td>
+                                <td class="total-cell" id="totalSavings">₹0</td>
+                                <td class="total-cell" id="totalSavingsAnnual">₹0</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Summary Section -->
+            <div class="section">
+                <div class="section-header">
+                    <span>📊</span> Financial Summary
+                </div>
+                <div class="section-content">
+                    <div class="summary-box">
+                        <div class="summary-item">
+                            <span>💰 Total Monthly Income:</span>
+                            <span id="summaryIncome">₹0</span>
+                        </div>
+                        <div class="summary-item">
+                            <span>💳 Total Monthly Expenses:</span>
+                            <span id="summaryExpenses">₹0</span>
+                        </div>
+                        <div class="summary-item">
+                            <span>🏦 Total Monthly EMI:</span>
+                            <span id="summaryEMI">₹0</span>
+                        </div>
+                        <div class="summary-item">
+                            <span>💎 Total Monthly Savings:</span>
+                            <span id="summarySavings">₹0</span>
+                        </div>
+                        <div class="summary-item">
+                            <span>💵 Net Monthly Balance:</span>
+                            <span id="netBalance">₹0</span>
+                        </div>
+                        <div class="summary-item">
+                            <span>📈 Savings Rate:</span>
+                            <span id="savingsRate">0%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="section">
+                <div class="section-header">
+                    <span>📈</span> Visual Analytics
+                </div>
+                <div class="section-content">
+                    <div class="charts-grid">
+                        <div class="chart-card">
+                            <h4>💰 Monthly Allocation</h4>
+                            <div class="chart-container">
+                                <canvas id="allocationChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-card">
+                            <h4>💳 Expense Breakdown</h4>
+                            <div class="chart-container">
+                                <canvas id="expenseChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <button class="btn btn-primary" onclick="downloadAsCSV()">
+                    <span>📥</span> Download CSV
+                </button>
+                <button class="btn btn-secondary" onclick="window.print()">
+                    <span>🖨️</span> Print/PDF
+                </button>
+                <button class="btn btn-info" onclick="resetAll()">
+                    <span>🔄</span> Reset All
+                </button>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Built with ❤️ for better financial management</p>
+            <p>Open source • Privacy focused • No data collection</p>
+            <p><a href="https://github.com" target="_blank">View on GitHub</a></p>
+        </div>
+    </div>
+
+    <script>
+        let allocationChart, expenseChart;
+
+        function calculateTotals() {
+            // Income calculations
+            const salary = parseFloat(document.getElementById('salary').value) || 0;
+            const freelance = parseFloat(document.getElementById('freelance').value) || 0;
+            const dividends = parseFloat(document.getElementById('dividends').value) || 0;
+            const totalIncome = salary + freelance + dividends;
+            
+            // Update income displays
+            document.getElementById('totalIncome').textContent = '₹' + totalIncome.toLocaleString('en-IN');
+            document.getElementById('summaryIncome').textContent = '₹' + totalIncome.toLocaleString('en-IN');
+            document.getElementById('totalIncomeAnnual').textContent = '₹' + (totalIncome * 12).toLocaleString('en-IN');
+            
+            // Annual projections
+            document.getElementById('salaryAnnual').textContent = '₹' + (salary * 12).toLocaleString('en-IN');
+            document.getElementById('freelanceAnnual').textContent = '₹' + (freelance * 12).toLocaleString('en-IN');
+            document.getElementById('dividendsAnnual').textContent = '₹' + (dividends * 12).toLocaleString('en-IN');
+
+            // EMI calculations
+            const loan1EMI = parseFloat(document.getElementById('loan1EMI').value) || 0;
+            const loan2EMI = parseFloat(document.getElementById('loan2EMI').value) || 0;
+            const loan3EMI = parseFloat(document.getElementById('loan3EMI').value) || 0;
+            const totalEMI = loan1EMI + loan2EMI + loan3EMI;
+            
+            document.getElementById('totalEMI').textContent = '₹' + totalEMI.toLocaleString('en-IN');
+            document.getElementById('summaryEMI').textContent = '₹' + totalEMI.toLocaleString('en-IN');
+
+            // Loan balance calculations
+            const loan1Balance = parseFloat(document.getElementById('loan1Balance').value) || 0;
+            const loan2Balance = parseFloat(document.getElementById('loan2Balance').value) || 0;
+            const loan3Balance = parseFloat(document.getElementById('loan3Balance').value) || 0;
+            const totalBalance = loan1Balance + loan2Balance + loan3Balance;
+            document.getElementById('totalBalance').textContent = '₹' + totalBalance.toLocaleString('en-IN');
+
+            // Fixed expenses
+            const rent = parseFloat(document.getElementById('rent').value) || 0;
+            const insurance = parseFloat(document.getElementById('insurance').value) || 0;
+            const utilities = parseFloat(document.getElementById('utilities').value) || 0;
+            const totalFixed = rent + insurance + utilities;
+            
+            document.getElementById('totalFixed').textContent = '₹' + totalFixed.toLocaleString('en-IN');
+            document.getElementById('totalFixedPercent').textContent = totalIncome > 0 ? ((totalFixed / totalIncome) * 100).toFixed(1) + '%' : '0%';
+
+            // Variable expenses
+            const food = parseFloat(document.getElementById('food').value) || 0;
+            const therapy = parseFloat(document.getElementById('therapy').value) || 0;
+            const entertainment = parseFloat(document.getElementById('entertainment').value) || 0;
+            const shopping = parseFloat(document.getElementById('shopping').value) || 0;
+            const totalVariable = food + therapy + entertainment + shopping;
+            
+            document.getElementById('totalVariable').textContent = '₹' + totalVariable.toLocaleString('en-IN');
+            document.getElementById('totalVariablePercent').textContent = totalIncome > 0 ? ((totalVariable / totalIncome) * 100).toFixed(1) + '%' : '0%';
+
+            const totalExpenses = totalFixed + totalVariable;
+            document.getElementById('summaryExpenses').textContent = '₹' + totalExpenses.toLocaleString('en-IN');
+
+            // Savings calculations
+            const emergencyFund = parseFloat(document.getElementById('emergencyFund').value) || 0;
+            const sip = parseFloat(document.getElementById('sip').value) || 0;
+            const fd = parseFloat(document.getElementById('fd').value) || 0;
+            const otherInvestments = parseFloat(document.getElementById('otherInvestments').value) || 0;
+            const totalSavings = emergencyFund + sip + fd + otherInvestments;
+            
+            document.getElementById('totalSavings').textContent = '₹' + totalSavings.toLocaleString('en-IN');
+            document.getElementById('summarySavings').textContent = '₹' + totalSavings.toLocaleString('en-IN');
+            document.getElementById('totalSavingsAnnual').textContent = '₹' + (totalSavings * 12).toLocaleString('en-IN');
+            
+            // Annual targets
+            document.getElementById('emergencyAnnual').textContent = '₹' + (emergencyFund * 12).toLocaleString('en-IN');
+            document.getElementById('sipAnnual').textContent = '₹' + (sip * 12).toLocaleString('en-IN');
+            document.getElementById('fdAnnual').textContent = '₹' + (fd * 12).toLocaleString('en-IN');
+            document.getElementById('otherAnnual').textContent = '₹' + (otherInvestments * 12).toLocaleString('en-IN');
+
+            // Net balance calculation
+            const netBalance = totalIncome - totalExpenses - totalEMI - totalSavings;
+            document.getElementById('netBalance').textContent = '₹' + netBalance.toLocaleString('en-IN');
+
+            // Savings rate calculation
+            const savingsRate = totalIncome > 0 ? ((totalSavings / totalIncome) * 100).toFixed(1) : 0;
+            document.getElementById('savingsRate').textContent = savingsRate + '%';
+
+            // Check for overspending and update percentages
+            const overspendThreshold = totalIncome * 0.1;
+            
+            checkOverspending('rent', rent, overspendThreshold, 'rentStatus', totalIncome, 'rentPercent');
+            checkOverspending('insurance', insurance, overspendThreshold, 'insuranceStatus', totalIncome, 'insurancePercent');
+            checkOverspending('utilities', utilities, overspendThreshold, 'utilitiesStatus', totalIncome, 'utilitiesPercent');
+            checkOverspending('food', food, overspendThreshold, 'foodStatus', totalIncome, 'foodPercent');
+            checkOverspending('therapy', therapy, overspendThreshold, 'therapyStatus', totalIncome, 'therapyPercent');
+            checkOverspending('entertainment', entertainment, overspendThreshold, 'entertainmentStatus', totalIncome, 'entertainmentPercent');
+            checkOverspending('shopping', shopping, overspendThreshold, 'shoppingStatus', totalIncome, 'shoppingPercent');
+
+            // Update charts
+            updateCharts(totalIncome, totalExpenses, totalEMI, totalSavings, rent, insurance, utilities, food, therapy, entertainment, shopping);
+        }
+
+        function checkOverspending(inputId, amount, threshold, statusId, totalIncome, percentId) {
+            const inputElement = document.getElementById(inputId);
+            const statusElement = document.getElementById(statusId);
+            const percentElement = document.getElementById(percentId);
+            
+            const percentage = totalIncome > 0 ? ((amount / totalIncome) * 100).toFixed(1) : 0;
+            percentElement.textContent = percentage + '%';
+            
+            if (amount > threshold && amount > 0) {
+                inputElement.classList.add('overspend');
+                statusElement.innerHTML = '⚠️ High';
+                statusElement.className = 'status-danger';
+            } else if (amount > 0) {
+                inputElement.classList.remove('overspend');
+                statusElement.innerHTML = '✅ OK';
+                statusElement.className = 'status-ok';
+            } else {
+                inputElement.classList.remove('overspend');
+                statusElement.innerHTML = '-';
+                statusElement.className = '';
+            }
+        }
+
+        function updateCharts(income, expenses, emi, savings, rent, insurance, utilities, food, therapy, entertainment, shopping) {
+            const remaining = Math.max(0, income - expenses - emi - savings);
+            
+            // Monthly Allocation Chart
+            const allocationData = {
+                labels: ['Expenses', 'EMI', 'Savings', 'Remaining'],
+                datasets: [{
+                    data: [expenses, emi, savings, remaining],
+                    backgroundColor: [
+                        '#FF6384',
+                        '#36A2EB', 
+                        '#4BC0C0',
+                        '#9966FF'
+                    ],
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            };
+
+            // Expense Categories Chart
+            const expenseData = {
+                labels: ['Rent', 'Insurance', 'Utilities', 'Food', 'Therapy', 'Entertainment', 'Shopping'],
+                datasets: [{
+                    data: [rent, insurance, utilities, food, therapy, entertainment, shopping],
+                    backgroundColor: [
+                        '#FF6384',
+                        '#36A2EB',
+                        '#FFCE56', 
+                        '#4BC0C0',
+                        '#9966FF',
+                        '#FF9F40',
+                        '#C9CBCF'
+                    ],
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            };
+
+            // Destroy existing charts
+            if (allocationChart) allocationChart.destroy();
+            if (expenseChart) expenseChart.destroy();
+
+            // Create new charts
+            const allocationCtx = document.getElementById('allocationChart').getContext('2d');
+            allocationChart = new Chart(allocationCtx, {
+                type: 'pie',
+                data: allocationData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            const expenseCtx = document.getElementById('expenseChart').getContext('2d');
+            expenseChart = new Chart(expenseCtx, {
+                type: 'doughnut',
+                data: expenseData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function downloadAsCSV() {
+            const data = [
+                ['Personal Finance Tracker - Export'],
+                ['Generated on: ' + new Date().toLocaleDateString()],
+                [''],
+                ['INCOME'],
+                ['Category', 'Monthly Amount', 'Annual Amount'],
+                ['Salary', document.getElementById('salary').value || 0, (parseFloat(document.getElementById('salary').value || 0) * 12)],
+                ['Freelance', document.getElementById('freelance').value || 0, (parseFloat(document.getElementById('freelance').value || 0) * 12)],
+                ['Dividends', document.getElementById('dividends').value || 0, (parseFloat(document.getElementById('dividends').value || 0) * 12)],
+                [''],
+                ['EXPENSES - FIXED'],
+                ['Category', 'Monthly Amount', 'Percentage of Income'],
+                ['Rent', document.getElementById('rent').value || 0, document.getElementById('rentPercent').textContent],
+                ['Insurance', document.getElementById('insurance').value || 0, document.getElementById('insurancePercent').textContent],
+                ['Utilities', document.getElementById('utilities').value || 0, document.getElementById('utilitiesPercent').textContent],
+                [''],
+                ['EXPENSES - VARIABLE'],
+                ['Category', 'Monthly Amount', 'Percentage of Income'],
+                ['Food', document.getElementById('food').value || 0, document.getElementById('foodPercent').textContent],
+                ['Therapy', document.getElementById('therapy').value || 0, document.getElementById('therapyPercent').textContent],
+                ['Entertainment', document.getElementById('entertainment').value || 0, document.getElementById('entertainmentPercent').textContent],
+                ['Shopping', document.getElementById('shopping').value || 0, document.getElementById('shoppingPercent').textContent],
+                [''],
+                ['SAVINGS & INVESTMENTS'],
+                ['Category', 'Monthly Amount', 'Annual Target'],
+                ['Emergency Fund', document.getElementById('emergencyFund').value || 0, (parseFloat(document.getElementById('emergencyFund').value || 0) * 12)],
+                ['SIP', document.getElementById('sip').value || 0, (parseFloat(document.getElementById('sip').value || 0) * 12)],
+                ['Fixed Deposits', document.getElementById('fd').value || 0, (parseFloat(document.getElementById('fd').value || 0) * 12)],
+                ['Other Investments', document.getElementById('otherInvestments').value || 0, (parseFloat(document.getElementById('otherInvestments').value || 0) * 12)],
+                [''],
+                ['SUMMARY'],
+                ['Metric', 'Value'],
+                ['Total Income', document.getElementById('summaryIncome').textContent],
+                ['Total Expenses', document.getElementById('summaryExpenses').textContent],
+                ['Total EMI', document.getElementById('summaryEMI').textContent],
+                ['Total Savings', document.getElementById('summarySavings').textContent],
+                ['Net Balance', document.getElementById('netBalance').textContent],
+                ['Savings Rate', document.getElementById('savingsRate').textContent]
+            ];
+
+            const csvContent = data.map(row => 
+                row.map(cell => `"${cell}"`).join(',')
+            ).join('\n');
+            
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `finance_tracker_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function resetAll() {
+            if (confirm('Are you sure you want to reset all data? This action cannot be undone.')) {
+                const inputs = document.querySelectorAll('input');
+                inputs.forEach(input => {
+                    input.value = '';
+                });
+                calculateTotals();
+            }
+        }
+
+        // Initialize on page load
+        window.onload = function() {
+            calculateTotals();
+            
+            // Add some sample data for demo (optional)
+            // You can remove this section if you don't want sample data
+            if (window.location.search.includes('demo=true')) {
+                document.getElementById('salary').value = '75000';
+                document.getElementById('rent').value = '25000';
+                document.getElementById('food').value = '8000';
+                document.getElementById('sip').value = '10000';
+                calculateTotals();
+            }
+        };
+
+        // Auto-save to localStorage (optional feature)
+        function autoSave() {
+            const data = {};
+            const inputs = document.querySelectorAll('input');
+            inputs.forEach(input => {
+                if (input.value) {
+                    data[input.id] = input.value;
+                }
+            });
+            // Note: localStorage is not available in Claude artifacts
+            // This would work when deployed to GitHub Pages
+            try {
+                localStorage.setItem('financeTrackerData', JSON.stringify(data));
+            } catch (e) {
+                // Silently fail in environments without localStorage
+            }
+        }
+
+        function loadSavedData() {
+            try {
+                const savedData = localStorage.getItem('financeTrackerData');
+                if (savedData) {
+                    const data = JSON.parse(savedData);
+                    Object.keys(data).forEach(key => {
+                        const element = document.getElementById(key);
+                        if (element) {
+                            element.value = data[key];
+                        }
+                    });
+                    calculateTotals();
+                }
+            } catch (e) {
+                // Silently fail in environments without localStorage
+            }
+        }
+
+        // Load saved data on page load
+        document.addEventListener('DOMContentLoaded', loadSavedData);
+
+        // Auto-save every 30 seconds
+        setInterval(autoSave, 30000);
+    </script>
+</body>
+</html>
